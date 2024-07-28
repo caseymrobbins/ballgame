@@ -1,13 +1,19 @@
 // src/pages/PlayerStats.tsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '../store/store';
+import { fetchPlayers, addPlayer } from '../features/players/playersSlice';
 import { Container, TextField, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 function PlayerStats() {
-  const [players, setPlayers] = useState([]);
-  const [teams, setTeams] = useState([]);
+  const dispatch = useDispatch<AppDispatch>();
+  const players = useSelector((state: RootState) => state.players.players);
+  const loading = useSelector((state: RootState) => state.players.loading);
+  const error = useSelector((state: RootState) => state.players.error);
+  const teams = useSelector((state: RootState) => state.teams.teams);
+
   const [playerName, setPlayerName] = useState('');
   const [position, setPosition] = useState('');
   const [teamId, setTeamId] = useState('');
@@ -15,48 +21,29 @@ function PlayerStats() {
   const [editingPlayer, setEditingPlayer] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/players')
-      .then(response => setPlayers(response.data))
-      .catch(error => console.error(error));
-
-    axios.get('http://localhost:5000/teams')
-      .then(response => setTeams(response.data))
-      .catch(error => console.error(error));
-  }, []);
+    dispatch(fetchPlayers());
+    dispatch(fetchTeams());
+  }, [dispatch]);
 
   const addOrUpdatePlayer = () => {
     if (editingPlayer) {
-      axios.put(`http://localhost:5000/players/${editingPlayer._id}`, { name: playerName, position, team: teamId, stats: JSON.parse(stats) })
-        .then(response => {
-          setPlayers(players.map(player => player._id === editingPlayer._id ? response.data : player));
-          setEditingPlayer(null);
-          resetForm();
-        })
-        .catch(error => console.error(error));
+      // Update player logic
     } else {
-      axios.post('http://localhost:5000/players', { name: playerName, position, team: teamId, stats: JSON.parse(stats) })
-        .then(response => {
-          setPlayers([...players, response.data]);
-          resetForm();
-        })
-        .catch(error => console.error(error));
+      dispatch(addPlayer({ name: playerName, position, team: teamId, stats: JSON.parse(stats) }));
+      resetForm();
     }
   };
 
   const editPlayer = (player) => {
     setPlayerName(player.name);
     setPosition(player.position);
-    setTeamId(player.team._id);
+    setTeamId(player.team);
     setStats(JSON.stringify(player.stats));
     setEditingPlayer(player);
   };
 
   const deletePlayer = (id) => {
-    axios.delete(`http://localhost:5000/players/${id}`)
-      .then(() => {
-        setPlayers(players.filter(player => player._id !== id));
-      })
-      .catch(error => console.error(error));
+    // Delete player logic
   };
 
   const resetForm = () => {
@@ -89,6 +76,8 @@ function PlayerStats() {
           Cancel
         </Button>
       </form>
+      {loading && <p>Loading...</p>}
+      {error && <p>Error: {error}</p>}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>

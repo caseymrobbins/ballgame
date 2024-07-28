@@ -1,39 +1,33 @@
 // src/pages/TeamManagement.tsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '../store/store';
+import { fetchTeams, addTeam } from '../features/teams/teamsSlice';
 import { Container, TextField, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 function TeamManagement() {
-  const [teams, setTeams] = useState([]);
+  const dispatch = useDispatch<AppDispatch>();
+  const teams = useSelector((state: RootState) => state.teams.teams);
+  const loading = useSelector((state: RootState) => state.teams.loading);
+  const error = useSelector((state: RootState) => state.teams.error);
+
   const [teamName, setTeamName] = useState('');
   const [mascot, setMascot] = useState('');
   const [colors, setColors] = useState('');
   const [editingTeam, setEditingTeam] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/teams')
-      .then(response => setTeams(response.data))
-      .catch(error => console.error(error));
-  }, []);
+    dispatch(fetchTeams());
+  }, [dispatch]);
 
   const addOrUpdateTeam = () => {
     if (editingTeam) {
-      axios.put(`http://localhost:5000/teams/${editingTeam._id}`, { name: teamName, mascot, colors: colors.split(',') })
-        .then(response => {
-          setTeams(teams.map(team => team._id === editingTeam._id ? response.data : team));
-          setEditingTeam(null);
-          resetForm();
-        })
-        .catch(error => console.error(error));
+      // Update team logic
     } else {
-      axios.post('http://localhost:5000/teams', { name: teamName, mascot, colors: colors.split(',') })
-        .then(response => {
-          setTeams([...teams, response.data]);
-          resetForm();
-        })
-        .catch(error => console.error(error));
+      dispatch(addTeam({ name: teamName, mascot, colors: colors.split(',') }));
+      resetForm();
     }
   };
 
@@ -45,11 +39,7 @@ function TeamManagement() {
   };
 
   const deleteTeam = (id) => {
-    axios.delete(`http://localhost:5000/teams/${id}`)
-      .then(() => {
-        setTeams(teams.filter(team => team._id !== id));
-      })
-      .catch(error => console.error(error));
+    // Delete team logic
   };
 
   const resetForm = () => {
@@ -73,6 +63,8 @@ function TeamManagement() {
           Cancel
         </Button>
       </form>
+      {loading && <p>Loading...</p>}
+      {error && <p>Error: {error}</p>}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
